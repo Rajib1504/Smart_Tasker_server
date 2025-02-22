@@ -23,7 +23,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const Taskcollection = client.db("smarttaskerDB").collection("tasks");
 
     // ✅ Create Task
@@ -37,10 +37,14 @@ async function run() {
         res.status(500).json({ message: "Failed to add task" });
       }
     });
-    app.get('/tasks',async(req,res)=>{
-      const result = await Taskcollection.find().toArray()
-      res.json(res)
-    })
+    app.get('/tasks', async (req, res) => {
+      try {
+        const result = await Taskcollection.find().toArray();
+        res.json(result); // ✅ Proper response
+      } catch (error) {
+        res.status(500).json({ message: "Failed to fetch tasks" });
+      }
+    });
 
     // ✅ Get Tasks by Email
     app.get('/tasks/:email', async (req, res) => {
@@ -65,7 +69,7 @@ async function run() {
     });
 
     // ✅ Update Task Category
-    app.put('/tasks/:id', async (req, res) => {
+    app.patch('/tasks/:id', async (req, res) => {
       const { id } = req.params;
       const { category } = req.body; // নতুন Category
     
@@ -86,6 +90,24 @@ async function run() {
       }
     });
     
+
+    app.put('/tasks/:id', async(req, res) => {
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const options = {upsert: true};
+      const updatedTasks = req.body;
+      const tasks = {
+        $set: {
+          title: updatedTasks.title,
+          description: updatedTasks.description,
+          category: updatedTasks.category
+        }
+      }
+      const result = await Taskcollection.updateOne(filter, tasks, options);
+      res.send(result);
+    })
+
+
 
     // ✅ Delete Task
     app.delete('/tasks/:id', async (req, res) => {
@@ -117,5 +139,5 @@ app.get("/", (req, res) => {
 
 // ✅ Start Server
 app.listen(port, () => {
-  console.log(`Server is running at: ${port}`);
+  // console.log(`Server is running at: ${port}`);
 });
